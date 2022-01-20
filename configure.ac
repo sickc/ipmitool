@@ -38,6 +38,7 @@ AC_CHECK_FUNCS([getpassphrase])
 
 CFLAGS="$CFLAGS -Wall -Wextra -std=gnu11 -pedantic -Wformat -Wformat-nonliteral"
 
+m4_pattern_allow([AM_PROG_LIBTOOL])
 AM_PROG_LIBTOOL
 LIBTOOL="$LIBTOOL --silent"
 
@@ -86,6 +87,7 @@ xenable_intf_lipmi=yes
 xenable_intf_open=yes
 #xenable_intf_serial=yes
 xenable_intf_usb=no
+xenable_intf_wmi=yes
 xenable_ipmishell=yes
 
 dnl set some things so we build with GNU tools on Solaris
@@ -614,6 +616,28 @@ if test "x$xenable_intf_dummy" = "xyes"; then
 	IPMITOOL_INTF_LIB="$IPMITOOL_INTF_LIB dummy/libintf_dummy.la"
 fi
 
+dnl enable Windows WMI interface
+AC_MSG_RESULT([  wmi 1    : $enable_intf_wmi])
+AC_MSG_RESULT([  host os    : $host_os])
+AC_ARG_ENABLE([intf-wmi],
+	[AC_HELP_STRING([--enable-intf-wmi],
+			[enable Windows WMI interface [default=auto]])],,
+	[])
+AC_MSG_RESULT([  wmi 2    : $enable_intf_wmi])
+if test "x$xenable_intf_wmi" = "xstatic" || test "x$xenable_intf_wmi" = "xplugin" || test "x$host_os" = "xcygwin"; then
+   xenable_intf_wmi=yes
+fi
+dnl xenable_intf_wmi=yes
+
+AC_MSG_RESULT([  wmi 3    : $enable_intf_wmi])
+if test "x$xenable_intf_wmi" = "xyes"; then
+    AC_DEFINE(IPMI_INTF_WMI, [1], [Define to 1 to enable Windows WMI interface.])
+    AC_SUBST(INTF_WMI, [wmi])
+    AC_SUBST(INTF_WMI_LIB, [libintf_wmi.la])
+    IPMITOOL_INTF_LIB="$IPMITOOL_INTF_LIB wmi/libintf_wmi.la"
+fi
+AC_MSG_RESULT([  wmi 4    : $enable_intf_wmi])
+
 AC_SUBST(IPMITOOL_INTF_LIB)
 
 AC_ARG_ENABLE([ipmishell],
@@ -748,6 +772,7 @@ AC_CONFIG_FILES([Makefile
 		src/plugins/lipmi/Makefile
 		src/plugins/serial/Makefile
 		src/plugins/dummy/Makefile
+		src/plugins/wmi/Makefile
 		doc/ipmitool.1
 		doc/ipmievd.8])
 
@@ -768,6 +793,7 @@ AC_MSG_RESULT([  usb     : $xenable_intf_usb])
 AC_MSG_RESULT([  lipmi   : $xenable_intf_lipmi])
 AC_MSG_RESULT([  serial  : $xenable_intf_serial])
 AC_MSG_RESULT([  dummy   : $xenable_intf_dummy])
+AC_MSG_RESULT([  wmi     : $xenable_intf_wmi])
 AC_MSG_RESULT([])
 AC_MSG_RESULT([Extra tools])
 AC_MSG_RESULT([  ipmievd   : yes])

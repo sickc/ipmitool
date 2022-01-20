@@ -212,6 +212,7 @@ struct ipmi_intf {
 	IPMI_OEM manufacturer_id;
 	int ai_family;
 
+	void* pWinSession;
 	struct ipmi_session_params ssn_params;
 	struct ipmi_session * session;
 	struct ipmi_oem_handle * oem;
