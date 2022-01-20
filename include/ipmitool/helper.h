@@ -127,6 +127,7 @@ uint8_t ipmi_csum(uint8_t * d, int s);
 FILE * ipmi_open_file(const char * file, int rw);
 void ipmi_start_daemon(struct ipmi_intf *intf);
 uint16_t ipmi_get_oem_id(struct ipmi_intf *intf);
+uint8_t* hex2byte(const char* hexstring, int *retcode);
 
 #define IS_SET(v, b) ((v) & (1 << (b)))
 

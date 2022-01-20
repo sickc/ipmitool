@@ -1126,6 +1126,96 @@ ipmi_get_oem_id(struct ipmi_intf *intf)
 	return oem_id;
 }
 
+//Used to prefix a zero character at the begining for odd len strings.
+char* PrefixZero(char* inpstr, int *rc)
+{
+	if(inpstr == NULL) {
+		printf("Given inpstr is null");
+		*rc = -1;
+	}
+
+	int len = strlen(inpstr);
+	if (len == 0) {
+		*rc = -1;
+		printf("Given string is of len 0");
+		return NULL;
+	}
+
+	char* newstr = malloc(len + 1);
+	newstr[0] = '0'; //add the first char as '0'
+	int i = 0;
+
+	for (i = 0; i < len; i++) {
+		newstr[i + 1] = inpstr[i];
+	}
+
+	newstr[i + 1] = '\0';
+	*rc = 0;
+
+	return newstr;
+}
+
+char* converthex2byte(const char *hexstring, int len, int* rc)
+{
+	char *pos = hexstring;
+	char *val = malloc(len / 2 + 1);
+	char *start = val;
+	size_t count = 0;
+
+	if (!val) {
+		printf("Failed to allocate memory for the string \n");
+		*rc = -1;
+		return NULL;
+	}
+
+	/* WARNING: no sanitization or error-checking whatsoever */
+	for (; count < len / 2; count++) {
+		sscanf(pos, "%2hhX", &val[count]);
+		pos += 2;
+	}
+
+	val[count] = '\0';
+	*rc = 0;
+
+	return start;
+}
+
+uint8_t* hex2byte(const char* hexstring, int *retcode)
+{
+	if (hexstring == NULL) {
+		printf("Given string is null");
+		*retcode = -1;
+		return NULL;
+	}
+
+	int len = strlen(hexstring);
+	if (len == 0) {
+		printf("input str is zero len");
+		*retcode = -1;
+		return NULL;
+	}
+
+	//Odd length input str
+	if (len % 2 != 0) {
+		len = len + 1; // account for the prefixed 0.
+		int rc = 0;
+
+		char* newarr = PrefixZero(hexstring, &rc);
+
+		if (rc != 0) {
+			printf("Failed in the method: PrefixZero");
+			*retcode = rc;
+			return NULL;
+		}
+
+		return converthex2byte(newarr, len, retcode);
+	}
+	else //even length input str
+	{
+		return converthex2byte(hexstring, len, retcode);
+	}
+}
+
 /** Parse command line arguments as numeric byte values (dec or hex)
  *  and store them in a \p len sized buffer \p out.
  *
