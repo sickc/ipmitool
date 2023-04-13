@@ -2,7 +2,7 @@ dnl
 dnl autoconf for ipmitool
 dnl
 m4_define([git_suffix], m4_esyscmd_s(./csv-revision))
-AC_INIT([ipmitool], [1.8.18git_suffix])
+AC_INIT([ipmitool], [1.8.19git_suffix])
 AC_CONFIG_SRCDIR([src/ipmitool.c])
 AC_CONFIG_COMMANDS_PRE([export prefix=$prefix])
 AC_CANONICAL_SYSTEM
@@ -18,8 +18,6 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_CHECK_PROG([RPMBUILD], [rpmbuild], [rpmbuild], [rpm])
 AC_CHECK_PROG([SED], [sed], [sed])
-AC_CHECK_PROG([WGET], [wget], [wget])
-AC_CHECK_PROG([CURL], [curl], [curl])
 
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h string.h sys/ioctl.h sys/stat.h unistd.h paths.h])
@@ -57,21 +55,33 @@ if test "x$exec_prefix" = "xNONE"; then
 	exec_prefix="$prefix"
 fi
 
-if test "x$WGET" = "x"; then
-	if test "x$CURL" = "x"; then
+dnl allow enabling/disabling the fetching of the IANA PEN registry
+AC_ARG_ENABLE([registry-download],
+	[AC_HELP_STRING([--enable-registry-download],
+			[download/install the IANA PEN registry [default=yes]])],
+	[xenable_registry_download=$enableval],
+	[xenable_registry_download=yes])
+
+AM_CONDITIONAL([DOWNLOAD], [false])
+
+if test "x$xenable_registry_download" = "xyes"; then
+	AC_CHECK_PROG([WGET], [wget], [wget])
+	AC_CHECK_PROG([CURL], [curl], [curl])
+
+	if test "x$WGET" = "x" && test "x$CURL" = "x"; then
 		AC_MSG_WARN([** Neither wget nor curl could be found.])
 		AC_MSG_WARN([** IANA PEN database will not be installed by `make install` !])
 	else
-		DOWNLOAD="$CURL --location --progress-bar"
 		AM_CONDITIONAL([DOWNLOAD], [true])
+		if test "x$WGET" != "x"; then
+			DOWNLOAD="$WGET -c -nd -O -"
+		else
+			DOWNLOAD="$CURL --location --progress-bar"
+		fi
 	fi
-else
-	DOWNLOAD="$WGET -c -nd -O -"
-	AM_CONDITIONAL([DOWNLOAD], [true])
 fi
 
-AC_MSG_WARN([** Download is:])
-AC_MSG_WARN($DOWNLOAD)
+AC_MSG_WARN([** Download is: $DOWNLOAD])
 AC_SUBST(DOWNLOAD, $DOWNLOAD)
 
 dnl
@@ -648,7 +658,11 @@ AC_ARG_ENABLE([ipmishell],
 
 dnl check for readline library to enable ipmi shell
 if test "x$xenable_ipmishell" = "xyes"; then
-	AC_SEARCH_LIBS([readline], [readline edit], [have_readline=yes])
+	PKG_PROG_PKG_CONFIG
+	PKG_CHECK_MODULES([READLINE], [readline],
+		[LIBS="$LIBS $READLINE_LIBS" have_readline=yes],
+		[AC_SEARCH_LIBS([readline], [readline edit], [have_readline=yes])]
+	)
 	if test "x$have_readline" != "xyes"; then
 		AC_MSG_ERROR([** Unable to find readline required by ipmishell.])
 		xenable_ipmishell=no
